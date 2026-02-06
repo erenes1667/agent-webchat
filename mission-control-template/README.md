@@ -36,7 +36,7 @@ Agent Wakes Up ──→ Reads briefing (notifications + chat + tasks)
 1. Create a free [Convex](https://convex.dev) account
 2. `npx convex init` in this directory
 3. `npx convex dev --once` to deploy the functions
-4. Use the CLI wrapper in `scripts/mc.sh` to interact
+4. Use the CLI wrapper `mc.sh` (at the project root) to interact
 
 ## Schema
 

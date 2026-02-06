@@ -128,12 +128,12 @@ A fully custom webchat interface for interacting with AI agents running on the [
 │   └── README.md
 ├── agents/                # Agent team
 │   ├── TEAM.md            # Team registry and architecture
-│   ├── varys/             # Overseer agent
+│   ├── overseer/             # Overseer agent
 │   │   ├── SOUL.md
 │   │   ├── AGENTS.md
 │   │   └── SCRATCHPAD.md
-│   ├── forge/             # Developer agent
-│   ├── whisper/           # Research agent
+│   ├── builder/             # Developer agent
+│   ├── researcher/           # Research agent
 │   └── ...                # Other specialists
 ├── mission-control/       # Task coordination app
 │   ├── convex/
@@ -426,7 +426,7 @@ Sessions use a hierarchical key format:
 
 ```
 agent:main:main              → Primary agent session
-agent:main:webchat:mickey:{id} → User-created webchat chats
+agent:main:webchat:{agent-name}:{id} → User-created webchat chats
 agent:main:subagent:{uuid}   → Background subagent sessions
 agent:main:cron:{name}       → Scheduled/cron sessions
 agent:newsletter:{name}      → Pipeline agent sessions
@@ -470,7 +470,7 @@ async function newChat() {
   const name = prompt('Chat name (or leave blank):');
   const label = name.trim() || `chat-${Date.now().toString(36)}`;
   const sessionId = crypto.randomUUID().slice(0, 12);
-  const sessionKey = `agent:main:webchat:mickey:${sessionId}`;
+  const sessionKey = `agent:main:webchat:{agent-name}:${sessionId}`;
 
   // Create on gateway first
   await request('sessions.create', { key: sessionKey, label });
@@ -1374,7 +1374,7 @@ Available in the browser console:
 
 ```javascript
 clearAgentStorage()  // Clear all localStorage, refresh page
-debugMickeyStorage()  // Log current localStorage state
+debugAgentStorage()  // Log current localStorage state
 ```
 
 ### 2.14 Mission Control Integration
@@ -2554,7 +2554,7 @@ The `taskEvents.ts` module auto-fires notifications when tasks change:
 - Logs to activity feed
 
 **Agent detection is flexible:**
-- Overseer: matched by role containing "overseer", "coordinator", or "whisperer", or name containing "varys"
+- Overseer: matched by role containing "overseer" or "coordinator"
 - QA: matched by role containing "qa" or name containing "nagger" or "shadow"
 
 ### 8.4 Agent Briefings (Wake-Up Context)

@@ -25,14 +25,11 @@ export const onStatusChange = mutation({
     // Find Overseer and Nagger by role/name (flexible matching)
     const overseer = allAgents.find(a => 
       a.role.toLowerCase().includes("overseer") || 
-      a.role.toLowerCase().includes("coordinator") ||
-      a.role.toLowerCase().includes("whisperer") ||
-      a.name.toLowerCase().includes("varys")
+      a.role.toLowerCase().includes("coordinator")
     );
     const nagger = allAgents.find(a => 
       a.role.toLowerCase().includes("qa") || 
-      a.name.toLowerCase().includes("nagger") ||
-      a.name.toLowerCase().includes("shadow")
+      a.name.toLowerCase().includes("nagger")
     );
     
     const changedByAgent = args.changedBy ? await ctx.db.get(args.changedBy) : null;
@@ -112,9 +109,7 @@ export const onTaskCreated = mutation({
     const allAgents = await ctx.db.query("agents").collect();
     const overseer = allAgents.find(a => 
       a.role.toLowerCase().includes("overseer") || 
-      a.role.toLowerCase().includes("coordinator") ||
-      a.role.toLowerCase().includes("whisperer") ||
-      a.name.toLowerCase().includes("varys")
+      a.role.toLowerCase().includes("coordinator")
     );
 
     const createdByAgent = args.createdBy ? await ctx.db.get(args.createdBy) : null;
