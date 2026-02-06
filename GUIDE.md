@@ -2652,6 +2652,59 @@ mc agents
 mc activity [limit]
 ```
 
+### 8.9 @Mentions and Notifications
+
+The system includes a full @mention system with autocomplete and notification tracking.
+
+**How mentions work (backend):**
+
+The mention parser doesn't use a simple regex. Instead, it:
+1. Fetches all agent names from the database
+2. Sorts them longest-first (greedy matching)
+3. Scans the message for `@` characters
+4. Checks if the text after `@` matches any agent name (case-insensitive)
+5. Respects word boundaries (space, punctuation, end of string)
+
+This means multi-word names like "Lord Varys" or "The Nagger" work correctly. Single-word names like "Mickey17" also work. Special keywords `@all` and `@everyone` notify every agent.
+
+Mentions create notifications in the `notifications` table with the mentioned agent's ID, the sender, the content preview, and a priority level.
+
+**Frontend: Autocomplete (MentionInput component):**
+
+Both SquadChat and TaskDetail use a shared `MentionInput` component:
+- Type `@` anywhere in the input to trigger the autocomplete dropdown
+- The dropdown shows agent avatars, names, and roles
+- Filter by typing after `@` (e.g., `@Lo` filters to "Lord Varys")
+- Keyboard navigation: Arrow Up/Down to highlight, Tab/Enter to select, Escape to dismiss
+- Click an agent to insert their name
+- The dropdown positions above the input, styled to match the dark theme
+
+**Frontend: Mention Highlighting (MentionText component):**
+
+Message content renders with mentions highlighted in the accent color. The component scans rendered text for known agent names prefixed with `@` and wraps them in styled spans.
+
+**Notification Bell (Header):**
+
+The header includes a bell icon with:
+- Unread count badge (red circle with number, hidden when zero)
+- Click to open a dropdown of recent notifications
+- Each notification shows: sender avatar, content preview, relative timestamp, priority indicator
+- Unread items have a tinted background and a colored dot
+- "Mark all read" button at the bottom clears the unread count
+
+**Notification functions:**
+
+```bash
+# List recent notifications for an agent
+npx convex run notifications:listRecent '{"agentId":"...","limit":20}'
+
+# Count undelivered notifications
+npx convex run notifications:countUndelivered '{"agentId":"..."}'
+
+# Mark all as delivered (read)
+npx convex run notifications:markAllDelivered '{"agentId":"..."}'
+```
+
 ---
 
 ## 9. Updating
