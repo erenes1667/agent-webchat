@@ -122,7 +122,7 @@ A fully custom webchat interface for interacting with AI agents running on the [
 ├── MEMORY.md              # Curated long-term memory
 ├── TOOLS.md               # Environment-specific tool notes
 ├── HEARTBEAT.md           # Heartbeat checklist
-├── mickey-webchat/        # The webchat UI
+├── webchat/        # The webchat UI
 │   ├── index.html         # Single-file app (~4200 lines)
 │   ├── upload-server.js   # File upload Node.js server
 │   └── README.md
@@ -1373,7 +1373,7 @@ Active Session → Archive → Archived List → (Restore | Permanent Delete)
 Available in the browser console:
 
 ```javascript
-clearMickeyStorage()  // Clear all localStorage, refresh page
+clearAgentStorage()  // Clear all localStorage, refresh page
 debugMickeyStorage()  // Log current localStorage state
 ```
 
@@ -1971,7 +1971,7 @@ Per-project documentation: architecture decisions, setup notes, changelogs, depl
 ```
 memory/projects/
 ├── mission-control.md
-├── mickey-webchat-changelog.md
+├── webchat-changelog.md
 ├── slack-stealth-setup.md
 └── ...
 ```

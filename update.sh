@@ -147,37 +147,40 @@ echo -e "\n${BOLD}🔧 Updating system files...${RESET}"
 if grep -q "HTMLEOF" "${TMPDIR}/setup.sh"; then
   # Extract HTML template
   sed -n '/^cat > .*index\.html.*HTMLEOF/,/^HTMLEOF$/p' "${TMPDIR}/setup.sh" | \
-    tail -n +2 | head -n -1 > "${TMPDIR}/index.html.template"
+    tail -n +2 | sed "$d" > "${TMPDIR}/index.html.template"
   
   if [[ -s "${TMPDIR}/index.html.template" ]]; then
+    # Portable sed -i (macOS vs Linux)
+    ised() { sed -i '' "$@" 2>/dev/null || sed -i "$@" 2>/dev/null || true; }
+
     # Apply user's customizations to the new template
-    sed -i '' "s|AGENT_NAME_PLACEHOLDER|${CURRENT_NAME:-Agent}|g" "${TMPDIR}/index.html.template" 2>/dev/null || \
-    sed -i "s|AGENT_NAME_PLACEHOLDER|${CURRENT_NAME:-Agent}|g" "${TMPDIR}/index.html.template" 2>/dev/null || true
-    
-    # Replace the token and gateway URL
+    # These match the __PLACEHOLDER__ format used in setup.sh
+    if [[ -n "${CURRENT_NAME:-}" ]]; then
+      ised "s|__AGENT_NAME__|${CURRENT_NAME}|g" "${TMPDIR}/index.html.template"
+      CURRENT_NAME_LOWER=$(echo "$CURRENT_NAME" | tr '[:upper:]' '[:lower:]')
+      ised "s|__AGENT_NAME_LOWER__|${CURRENT_NAME_LOWER}|g" "${TMPDIR}/index.html.template"
+      ised "s|<title>[^<]*</title>|<title>${CURRENT_NAME}</title>|" "${TMPDIR}/index.html.template"
+    fi
+
     if [[ -n "${CURRENT_TOKEN:-}" ]]; then
-      sed -i '' "s|token: '[^']*'|token: '${CURRENT_TOKEN}'|" "${TMPDIR}/index.html.template" 2>/dev/null || \
-      sed -i "s|token: '[^']*'|token: '${CURRENT_TOKEN}'|" "${TMPDIR}/index.html.template" 2>/dev/null || true
+      ised "s|token: '[^']*'|token: '${CURRENT_TOKEN}'|" "${TMPDIR}/index.html.template"
     fi
     
     if [[ -n "${CURRENT_GW:-}" ]]; then
-      sed -i '' "s|gatewayUrl: '[^']*'|gatewayUrl: '${CURRENT_GW}'|" "${TMPDIR}/index.html.template" 2>/dev/null || \
-      sed -i "s|gatewayUrl: '[^']*'|gatewayUrl: '${CURRENT_GW}'|" "${TMPDIR}/index.html.template" 2>/dev/null || true
+      ised "s|gatewayUrl: '[^']*'|gatewayUrl: '${CURRENT_GW}'|" "${TMPDIR}/index.html.template"
     fi
     
     if [[ -n "${CURRENT_EMOJI:-}" ]]; then
-      sed -i '' "s|AGENT_EMOJI = '[^']*'|AGENT_EMOJI = '${CURRENT_EMOJI}'|" "${TMPDIR}/index.html.template" 2>/dev/null || \
-      sed -i "s|AGENT_EMOJI = '[^']*'|AGENT_EMOJI = '${CURRENT_EMOJI}'|" "${TMPDIR}/index.html.template" 2>/dev/null || true
-    fi
-
-    if [[ -n "${CURRENT_NAME:-}" ]]; then
-      sed -i '' "s|<title>[^<]*</title>|<title>${CURRENT_NAME}</title>|" "${TMPDIR}/index.html.template" 2>/dev/null || \
-      sed -i "s|<title>[^<]*</title>|<title>${CURRENT_NAME}</title>|" "${TMPDIR}/index.html.template" 2>/dev/null || true
+      ised "s|__AGENT_EMOJI__|${CURRENT_EMOJI}|g" "${TMPDIR}/index.html.template"
+      ised "s|AGENT_EMOJI = '[^']*'|AGENT_EMOJI = '${CURRENT_EMOJI}'|" "${TMPDIR}/index.html.template"
     fi
 
     if [[ -n "${CURRENT_ACCENT:-}" ]]; then
-      sed -i '' "s|--accent: [^;]*;|--accent: ${CURRENT_ACCENT};|" "${TMPDIR}/index.html.template" 2>/dev/null || \
-      sed -i "s|--accent: [^;]*;|--accent: ${CURRENT_ACCENT};|" "${TMPDIR}/index.html.template" 2>/dev/null || true
+      ised "s|--accent: [^;]*;|--accent: ${CURRENT_ACCENT};|" "${TMPDIR}/index.html.template"
+      # Derive bright/dim/glow from accent (hex color math)
+      # Simple approach: just replace the first occurrence of each
+      ACCENT_BRIGHT=$(echo "${CURRENT_ACCENT}" | sed 's/#//' | awk '{printf "#%02x%02x%02x", int("0x"substr($0,1,2))*1.2>255?255:int("0x"substr($0,1,2))*1.2, int("0x"substr($0,3,2))*1.2>255?255:int("0x"substr($0,3,2))*1.2, int("0x"substr($0,5,2))*1.2>255?255:int("0x"substr($0,5,2))*1.2}' 2>/dev/null || echo "${CURRENT_ACCENT}")
+      ised "s|--accent-bright: [^;]*;|--accent-bright: ${ACCENT_BRIGHT};|" "${TMPDIR}/index.html.template"
     fi
 
     cp "${TMPDIR}/index.html.template" "${INSTALL_DIR}/webchat/index.html"
@@ -192,7 +195,7 @@ fi
 # Update upload server (safe to overwrite)
 if grep -q "upload" "${TMPDIR}/setup.sh"; then
   sed -n '/^cat > .*upload-server\.js.*UPLOAD_EOF/,/^UPLOAD_EOF$/p' "${TMPDIR}/setup.sh" | \
-    tail -n +2 | head -n -1 > "${TMPDIR}/upload-server.js"
+    tail -n +2 | sed "$d" > "${TMPDIR}/upload-server.js"
   if [[ -s "${TMPDIR}/upload-server.js" ]]; then
     cp "${TMPDIR}/upload-server.js" "${INSTALL_DIR}/webchat/upload-server.js"
     echo -e "  ${GREEN}✓${RESET} webchat/upload-server.js updated"
@@ -225,9 +228,9 @@ if [[ -f "${TMPDIR}/mc.sh" ]]; then
 fi
 
 # Update AGENTS.md (system instructions, safe to update)
-if grep -q "AGENTS_EOF\|AGENTS.md" "${TMPDIR}/setup.sh"; then
-  sed -n '/^cat > .*AGENTS\.md.*AGENTS_EOF/,/^AGENTS_EOF$/p' "${TMPDIR}/setup.sh" | \
-    tail -n +2 | head -n -1 > "${TMPDIR}/AGENTS.md.new"
+if grep -q "AGENTS_STATIC\|AGENTS.md" "${TMPDIR}/setup.sh"; then
+  sed -n '/^cat > .*AGENTS\.md.*AGENTS_STATIC/,/^AGENTS_STATIC$/p' "${TMPDIR}/setup.sh" | \
+    tail -n +2 | sed "$d" > "${TMPDIR}/AGENTS.md.new"
   if [[ -s "${TMPDIR}/AGENTS.md.new" ]]; then
     cp "${TMPDIR}/AGENTS.md.new" "${INSTALL_DIR}/AGENTS.md"
     echo -e "  ${GREEN}✓${RESET} AGENTS.md updated (system instructions)"
@@ -239,7 +242,7 @@ for script in start.sh stop.sh; do
   MARKER=$(echo "$script" | tr '.' '_' | tr '[:lower:]' '[:upper:]')_EOF
   if grep -q "${MARKER}\|${script}" "${TMPDIR}/setup.sh"; then
     sed -n "/^cat > .*${script}.*EOF/,/^.*EOF$/p" "${TMPDIR}/setup.sh" | \
-      tail -n +2 | head -n -1 > "${TMPDIR}/${script}.new" 2>/dev/null
+      tail -n +2 | sed "$d" > "${TMPDIR}/${script}.new" 2>/dev/null
     if [[ -s "${TMPDIR}/${script}.new" ]]; then
       cp "${TMPDIR}/${script}.new" "${INSTALL_DIR}/${script}"
       chmod +x "${INSTALL_DIR}/${script}"
