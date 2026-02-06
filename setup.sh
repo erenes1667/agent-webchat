@@ -3133,6 +3133,11 @@ STOP_EOF
 chmod +x "${INSTALL_DIR}/stop.sh"
 print_ok "stop.sh"
 
+# ─── Generate: update.sh ──────────────────────────────────────
+curl -fsSL "https://raw.githubusercontent.com/erenes1667/agent-webchat/main/update.sh" -o "${INSTALL_DIR}/update.sh" 2>/dev/null || true
+chmod +x "${INSTALL_DIR}/update.sh" 2>/dev/null || true
+print_ok "update.sh"
+
 # ─── Generate: empty memory file ───────────────────────────────
 cat > "${INSTALL_DIR}/memory/heartbeat-state.json" << 'HS_EOF'
 {"lastChecks":{}}
@@ -3167,7 +3172,8 @@ printf "    ├── USER.md                     ${DIM}# User profile template$
 printf "    ├── MEMORY.md                   ${DIM}# Long-term memory${RESET}\n"
 printf "    ├── HEARTBEAT.md                ${DIM}# Heartbeat config${RESET}\n"
 printf "    ├── start.sh                    ${DIM}# Start all services${RESET}\n"
-printf "    └── stop.sh                     ${DIM}# Stop all services${RESET}\n\n"
+printf "    ├── stop.sh                     ${DIM}# Stop all services${RESET}\n"
+printf "    └── update.sh                   ${DIM}# Update without reinstalling${RESET}\n\n"
 
 printf "  ${BOLD}Quick Start:${RESET}\n"
 printf "    ${CYAN}cd ${FULL_PATH}${RESET}\n"

@@ -2497,4 +2497,188 @@ The 32×16 grid uses these approximate regions:
 
 ---
 
+## 8. Broadcast System — Agent Communication Layer
+
+The broadcast system turns Mission Control from a passive task board into an active event bus. Agents don't just read tasks; they communicate, get notified, and coordinate in real-time (asynchronously).
+
+### 8.1 Architecture
+
+```
+Task Created ──→ Overseer gets notified (triage)
+                 Squad Chat gets broadcast
+                 Activity log updated
+
+Task Status Change ──→ Overseer gets status update
+                       All assignees get notified
+                       If review/done → QA agent gets HIGH priority alert
+                       Squad Chat gets broadcast
+
+Agent Wakes Up ──→ Reads briefing (1 query: notifications + chat + tasks)
+                   Processes work
+                   Posts results to squad chat
+                   Clears notifications
+```
+
+### 8.2 Squad Chat (The Agent Slack)
+
+A shared async channel stored in the `squadChat` Convex table. Any agent can post, any agent can read.
+
+```bash
+# Post to squad chat
+npx convex run squadChat:create '{"fromAgentId":"...","content":"Finished the analysis"}'
+
+# @mention a specific agent (creates a notification for them)
+npx convex run squadChat:create '{"fromAgentId":"...","content":"@Forge can you review this?"}'
+
+# @all notifies everyone
+npx convex run squadChat:create '{"fromAgentId":"...","content":"@all API is back up"}'
+
+# Read recent messages
+npx convex run squadChat:list '{"limit":20}'
+```
+
+### 8.3 Task Events (The Event Bus)
+
+The `taskEvents.ts` module auto-fires notifications when tasks change:
+
+**onTaskCreated:**
+- Notifies the Overseer to triage
+- Broadcasts to squad chat
+- Logs to activity feed
+
+**onStatusChange:**
+- Always notifies Overseer (status awareness)
+- Notifies Nagger/QA on `review` or `done` (HIGH priority)
+- Notifies all assignees (except the one who made the change)
+- Broadcasts to squad chat
+- Logs to activity feed
+
+**Agent detection is flexible:**
+- Overseer: matched by role containing "overseer", "coordinator", or "whisperer", or name containing "varys"
+- QA: matched by role containing "qa" or name containing "nagger" or "shadow"
+
+### 8.4 Agent Briefings (Wake-Up Context)
+
+When any agent wakes up (gets spawned), the first thing it should do is read its briefing:
+
+```bash
+npx convex run taskEvents:getAgentBriefing '{"agentId":"..."}'
+```
+
+Returns a single JSON object with:
+- `notifications` — unread notifications for this agent
+- `recentChat` — last 20 squad chat messages (chronological)
+- `activeTasks` — all tasks not in "done" status
+- `myTasks` — tasks assigned to this specific agent
+- `recentActivity` — last 10 activity log entries
+- `agentNames` — ID-to-name mapping for all agents
+
+After processing, clear notifications:
+```bash
+npx convex run taskEvents:clearNotifications '{"agentId":"..."}'
+```
+
+### 8.5 Broadcasts (Emergency Channel)
+
+For high-priority messages that must reach every agent:
+
+```bash
+npx convex run broadcast:send '{"fromAgentId":"...","message":"Critical: deploy failed"}'
+```
+
+This creates:
+- A notification for EVERY agent (high priority)
+- A squad chat message prefixed with 📢 BROADCAST
+- An activity log entry
+
+### 8.6 Cron Integration
+
+The system uses OpenClaw cron jobs for autonomous agent monitoring:
+
+**Overseer Triage (every 30 min, Sonnet):**
+- Reads briefing
+- If new inbox tasks exist, assesses priority and assigns to specialists
+- Posts assessment to squad chat
+- Clears notifications
+- Cost: ~$0.01-0.02 per cycle (Sonnet reading a small briefing)
+
+**Nagger QA Sweep (every 60 min, Sonnet):**
+- Reads briefing
+- If tasks moved to review/done, checks deliverables
+- Posts QA findings to squad chat
+- Clears notifications
+- Cost: ~$0.01-0.02 per cycle
+
+**Key principle:** Agents don't poll. Cron jobs wake them on schedule, they check their briefing, act if needed, and go back to sleep. Zero idle cost.
+
+### 8.7 Cost Analysis
+
+| Component | Frequency | Model | Cost/cycle | Monthly (est.) |
+|-----------|-----------|-------|------------|----------------|
+| Overseer triage | Every 30 min | Sonnet | ~$0.01 | ~$15 |
+| Nagger QA | Every 60 min | Sonnet | ~$0.01 | ~$7 |
+| Specialist spawn | On demand | Varies | $0.02-0.50 | Varies |
+| Squad chat | Free (DB writes) | N/A | $0 | $0 |
+| Briefings | Free (DB reads) | N/A | $0 | $0 |
+
+Total monitoring overhead: ~$22/month for autonomous Overseer + QA.
+Specialists only cost money when they're actually doing work.
+
+### 8.8 MC CLI Wrapper
+
+The `mc.sh` script provides a clean interface:
+
+```bash
+# Tasks
+mc task:create "title" "description" [priority]
+mc task:status <taskId> <status>
+mc task:assign <taskId> <agentId>
+mc task:list [status]
+
+# Squad Chat
+mc chat:send <agentId> "message"
+mc chat:list [limit]
+
+# Broadcast
+mc broadcast <agentId> "message"
+
+# Agent Context
+mc briefing <agentId>
+mc notif:list <agentId>
+mc notif:clear <agentId>
+
+# System
+mc agents
+mc activity [limit]
+```
+
+---
+
+## 9. Updating
+
+The system includes a non-destructive update mechanism:
+
+```bash
+./update.sh
+```
+
+**What gets updated:**
+- Webchat UI (index.html) — new features, bug fixes
+- Upload server
+- Mission Control functions (taskEvents, squadChat, broadcast, etc.)
+- Service scripts (start.sh, stop.sh)
+- AGENTS.md (system instructions)
+
+**What is NEVER touched:**
+- SOUL.md (your personality)
+- IDENTITY.md (your identity choices)
+- USER.md (your user profile)
+- MEMORY.md (your long-term memory)
+- Token, gateway URL, accent color (extracted and re-applied)
+- Agent team files (TEAM.md, overseer/ROLE.md)
+
+A timestamped backup is created before every update at `.backup-YYYYMMDD-HHMMSS/`.
+
+---
+
 *This guide was generated from the actual source code and configuration files of a working deployment. All personal information, credentials, and client-specific details have been removed. The system architecture and patterns described here are generic and can be adapted for any OpenClaw-based agent setup.*

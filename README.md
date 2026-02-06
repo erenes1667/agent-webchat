@@ -148,6 +148,14 @@ Opens webchat at `http://localhost:8001` and upload server at `http://localhost:
 ./stop.sh
 ```
 
+### Update
+
+```bash
+./update.sh
+```
+
+Updates system files (webchat UI, upload server, MC functions, scripts) while preserving all your customizations (SOUL.md, IDENTITY.md, USER.md, MEMORY.md, token, colors). Creates a timestamped backup before any changes.
+
 ### Day-to-day
 
 - Open `http://localhost:8001` in your browser
