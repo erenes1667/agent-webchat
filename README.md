@@ -66,13 +66,18 @@ A multi-agent hierarchy for complex work:
 - **Specialists** - Researcher, Builder, Ops agents that handle specific domains
 - Each agent has its own `ROLE.md`, scratchpad, and working directory
 
-### 📋 Mission Control (Optional)
-A task tracking system for agent coordination:
+### 📋 Mission Control + Broadcast System
+A real-time coordination backend that makes your agents actually work together:
 
-- Convex-powered real-time backend
+- **Convex-powered** real-time task board
+- **Squad Chat** - shared communication channel between all agents (their own Slack)
+- **Broadcast system** - high-priority messages that notify every agent
+- **Event bus** - automatic notifications when tasks change status
+- **Agent briefings** - one query gives any agent their full context on wake-up
+- **QA triggers** - QA agents get auto-notified when tasks move to review/done
+- **@mentions** - tag specific agents or @all in squad chat
 - Task lifecycle: inbox → assigned → in_progress → review → done
-- Agent @mentions and message threads
-- CLI integration for agents to create/update tasks programmatically
+- CLI wrapper (`mc.sh`) for easy agent interaction
 
 ---
 
@@ -267,6 +272,26 @@ You could, but the gateway token would need to be secured. It's designed for loc
 Edit `MEMORY.md` directly, or let your agent do it (it's configured to maintain its own memory files).
 
 ---
+
+## Mission Control
+
+The `mission-control-template/` directory contains all the Convex functions for the broadcast system. See [mission-control-template/README.md](./mission-control-template/README.md) for setup and usage.
+
+The `mc.sh` CLI wrapper makes it easy for agents to interact:
+
+```bash
+# Create a task
+./mc.sh task:create "Build landing page" "Full responsive design" high
+
+# Post to squad chat
+./mc.sh chat:send <agentId> "Finished the analysis, ready for review"
+
+# Broadcast to all agents
+./mc.sh broadcast <agentId> "API is back up, resume work"
+
+# Get agent's full briefing on wake-up
+./mc.sh briefing <agentId>
+```
 
 ## Detailed Guide
 
