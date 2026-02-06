@@ -23,15 +23,50 @@ echo -e "${BOLD}🔄 Agent Webchat Updater${RESET}"
 echo ""
 
 # ─── Detect install directory ─────────────────────────────────
-# We should be running from the install directory or its parent
+# Search: current dir, common locations, then ask
 if [[ -f "./webchat/index.html" ]]; then
   INSTALL_DIR="."
 elif [[ -f "./agent-webchat/webchat/index.html" ]]; then
   INSTALL_DIR="./agent-webchat"
 else
-  echo -e "${RED}✗ Can't find your agent installation.${RESET}"
-  echo -e "${DIM}  Run this from your agent directory (where SOUL.md is).${RESET}"
-  exit 1
+  # Search common locations
+  FOUND=""
+  for candidate in "$HOME/agent-webchat" "$HOME/Desktop/agent-webchat" "$HOME/.openclaw/workspace"; do
+    if [[ -f "${candidate}/webchat/index.html" ]]; then
+      FOUND="$candidate"
+      break
+    fi
+  done
+  # Also search one level deep in current dir
+  if [[ -z "$FOUND" ]]; then
+    for d in ./*/; do
+      if [[ -f "${d}webchat/index.html" ]]; then
+        FOUND="${d%/}"
+        break
+      fi
+    done
+  fi
+
+  if [[ -n "$FOUND" ]]; then
+    echo -e "  Found installation at: ${CYAN}${FOUND}${RESET}"
+    echo -ne "  ${BOLD}Use this?${RESET} [Y/n]: "
+    read -r CONFIRM
+    if [[ "${CONFIRM:-y}" =~ ^[Yy]?$ ]]; then
+      INSTALL_DIR="$FOUND"
+    else
+      echo -ne "  ${BOLD}Enter your install directory:${RESET} "
+      read -r INSTALL_DIR
+    fi
+  else
+    echo -e "${YELLOW}⚠ Can't auto-detect your installation.${RESET}"
+    echo -ne "  ${BOLD}Enter your install directory${RESET} (where SOUL.md is): "
+    read -r INSTALL_DIR
+  fi
+
+  if [[ ! -f "${INSTALL_DIR}/webchat/index.html" ]]; then
+    echo -e "${RED}✗ No webchat found at ${INSTALL_DIR}/webchat/index.html${RESET}"
+    exit 1
+  fi
 fi
 
 INSTALL_DIR=$(cd "$INSTALL_DIR" && pwd)

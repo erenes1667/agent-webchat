@@ -20,7 +20,7 @@ curl -fsSL https://raw.githubusercontent.com/erenes1667/agent-webchat/main/insta
 ## Update (preserves your config)
 
 ```bash
-./update.sh
+curl -fsSL https://raw.githubusercontent.com/erenes1667/agent-webchat/main/update.sh | bash
 ```
 
 ---
