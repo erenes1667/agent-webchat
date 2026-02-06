@@ -11,19 +11,29 @@ Built for people who want their AI agent to feel like *someone*, not something.
   <img src="https://img.shields.io/badge/license-MIT-gray?style=flat-square" />
 </p>
 
----
-
-## Quick Start
+## Install
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/erenes1667/agent-webchat/main/install.sh | bash
 ```
 
-That's it. The script walks you through everything interactively.
-
-**Or clone and run:**
+## Update (preserves your config)
 
 ```bash
+./update.sh
+```
+
+---
+
+## Quick Start
+
+One command. Asks 7 questions. Generates everything.
+
+```bash
+# Remote install (recommended)
+curl -fsSL https://raw.githubusercontent.com/erenes1667/agent-webchat/main/install.sh | bash
+
+# Or clone and run
 git clone https://github.com/erenes1667/agent-webchat.git
 cd agent-webchat
 ./setup.sh
